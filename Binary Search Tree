@@ -1,0 +1,145 @@
+#include <stdio.h>
+#include <stdlib.h>
+
+struct data
+{
+	int key;
+	struct data *left, *right;
+};
+
+struct data *predecessor(struct data *root)       
+{
+	struct data *curr = root->left;
+	while(curr->right!=NULL)
+	    curr = curr->right;
+
+	return curr;
+}
+
+
+struct data *newNode(int x)
+{
+	struct data *currNewNode = (struct data*) malloc (sizeof(struct data));
+	currNewNode->key = x;
+	currNewNode->left = NULL;
+	currNewNode->right= NULL;
+
+	return currNewNode;
+}
+
+
+
+struct data *insert(struct data *root, int value)
+{
+	if(root == NULL) return newNode(value);
+	else if(value < root->key)		
+	    root->left = insert(root->left, value);		
+	else							
+	    root->right = insert(root->right, value);   
+	return root;
+}
+
+
+struct data *deleteValue(struct data * root, int value)
+{
+	if(root == NULL) return NULL;          
+
+	if(value < root->key)
+	    root->left = deleteValue(root->left, value);
+	else if(value > root->key)
+	    root->right = deleteValue(root->right, value);
+	else
+	{
+		if((root->left == NULL ) || (root->right==NULL))
+		{
+			struct data *temp = NULL;
+			if(root->left!=NULL)
+			    temp = root->left;	
+			else
+			    temp = root->right;		
+			if(temp==NULL)
+			{
+				
+				temp = root;
+				root = NULL;
+			}
+			else
+			    *root = *temp;       
+
+			free(temp);
+		}
+		else
+		{
+			
+			struct data *temp = predecessor(root);
+			root->key = temp->key;
+		
+			root->left = deleteValue(root->left, temp->key);
+		}
+	}
+	return root;
+}
+
+struct data *search(struct data *root, int value)
+{
+	if(!root)
+		printf("Data Doesn't Exist\n");
+	else if(value < root->key)			
+	    root->left = search(root->left, value);	
+	else if(value > root->key)						
+	    root->right = search(root->right, value);  
+	else
+		printf("Found %d\n", value);
+	return root;
+}
+
+void printAll(struct data *root)
+{
+	if(root == NULL) return;
+    printAll(root->left);
+    printf(" %d ", root->key);
+    printAll(root->right);
+}
+
+struct data *freeAll(struct data *root)
+{
+	if(root == NULL) return NULL;
+	root->left = freeAll(root->left);
+	root->right = freeAll(root->right);
+	free(root);
+	return NULL;
+}
+
+
+int main()
+{
+	
+	struct data *root = NULL;
+	
+	root = insert(root, 10);
+    root = insert(root, 5);
+	root = insert(root, 7);
+	root = insert(root, 15);
+	root = insert(root, 20);
+	root = insert(root, 17);
+	
+	printAll(root);
+	puts("");
+
+	search(root, 20);
+    search(root, 5);
+	root = deleteValue(root, 5);
+	search(root, 5);
+	printAll(root);
+	puts("");
+
+	root = deleteValue(root, 15);
+	printAll(root);
+	puts("");
+
+
+	root = freeAll(root);
+
+	getchar();
+	return 0;
+}
