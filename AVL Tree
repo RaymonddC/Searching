@@ -1,0 +1,282 @@
+#include<stdio.h>
+#include<stdlib.h>
+
+int expenseid = 1;
+int number;
+
+
+struct Data{
+	int Id, Expense, Category, height;
+	Data *left = NULL, *right = NULL;
+}*root = NULL;
+
+char categ[7][20] = {"Total Expense", "food & beverages", "hobby", "transportation", "shopping", "others"};
+int SumCat[7] = {0};
+
+void InOrder(struct Data *node){
+	if(node == NULL) return;
+	
+	InOrder(node->left);
+	printf("%-2d. | %-9d | %-20s | %-d\n", number++, node->Id, categ[node->Category], node->Expense);
+	InOrder(node->right);
+	
+}
+
+printList(){
+	printf("No. | ExpenseID | Category Name        | Expense\n");
+	printf("==================================================\n");
+	number = 1;
+	InOrder(root);
+	printf("==================================================\n");
+	for(int i = 0; i <= 5; i++){
+		printf("%-16s : %d\n", categ[i], SumCat[i]);
+	}
+	printf("==================================================\n\n");
+
+}
+
+int getHeight(Data *node){
+	if(!node) return 0;
+	return node->height;
+}
+
+int UpdateHeight(Data *node){
+	int a = getHeight(node->left);
+	int b = getHeight(node->right);
+	
+	if(a < b) return b+1;
+	return a+1;
+}
+
+int getBF(Data *node){
+	return getHeight(node->left) - getHeight(node->right);
+}
+
+Data *createNewNode(int Id, int Expense, int Category){
+	struct Data *newNode = (struct Data *) malloc (sizeof(struct Data));
+	newNode->Category = Category;
+	newNode->Expense = Expense;
+	newNode->Id = Id;
+	newNode->height = 1;
+	newNode->left = NULL;
+	newNode->right = NULL;
+	SumCat[0] += Expense;
+	SumCat[Category] += Expense;
+	
+	expenseid++;
+	
+	return newNode;
+}
+
+Data *LeftRotate(Data *X){
+	Data *Y = X->right;
+	Data *Z = Y->left;
+	
+	Y->left = X;
+	X->right = Z;
+	
+	X->height = UpdateHeight(X);
+	Y->height = UpdateHeight(Y);
+	return Y;
+}
+
+Data *RightRotate(Data *X){
+	Data *Y = X->left;
+	Data *Z = Y->right;
+	
+	Y->right = X;
+	X->left = Z;
+	
+	X->height = UpdateHeight(X);
+	Y->height = UpdateHeight(Y);
+	return Y;
+}
+
+Data *Insert(Data *node, int Id, int Expense, int Category){
+		
+	if(!node){
+		return createNewNode(Id, Expense, Category);
+	}
+	else if(Id > node->Id){
+		node->right = Insert(node->right, Id, Expense, Category);
+	}
+	else if(Id < node->Id){
+		node->left = Insert(node->left, Id, Expense, Category);
+	}
+	else{
+		printf("BUG");
+	}
+	
+	//Update Height
+	node->height = UpdateHeight(node);
+	
+//	printf("ID: %d\n", node->Id);
+	//balancing
+	int BF = getBF(node);
+	
+	if(BF > 1){ //Lebih kiri
+		if(getBF(node->left) < 0) node->left = LeftRotate(node->left);
+		return RightRotate(node);
+	}
+	else if(BF < -1){ //Kelebihan Kanan
+		if(getBF(node->right) > 0) node->right = RightRotate(node->right);
+		return LeftRotate(node);
+	}
+	
+	return node;
+}
+
+void Input(){
+	int Category, Expense;	
+	printf("\nChoose expense category:\n");
+	printf("1. food & beverages\n");
+	printf("2. hobby\n");
+	printf("3. transportation\n");
+	printf("4. shopping\n");
+	printf("5. others\n");
+	do{
+		printf("input your choice [1..5]: ");
+		scanf("%d", &Category);
+	}while(Category < 1 || Category > 5);
+	do{
+		printf("input total expense [0..10000000]: ");
+		scanf("%d", &Expense);
+	}while(Expense < 0 || Expense > 10000000);
+	
+	root = Insert(root, expenseid, Expense, Category);
+	
+	printf("Success\n");
+}
+
+void UpdateID(){
+	printf("aw");
+	Data *temp = root;
+	while(temp->right)
+		temp = temp->right;
+	expenseid = temp->Id + 1;
+	printf("expense id %d", expenseid);
+}
+
+Data *DeleteNode(Data *node, int Id, int counter){
+	if(!node){
+		printf("data is not found\n");
+		return NULL;
+	}
+	else if(Id < node->Id)
+		node->left = DeleteNode(node->left, Id, counter);
+	else if(Id > node->Id)
+		node->right = DeleteNode(node->right, Id, counter);
+	else{
+		Data *temp;
+		
+		if(counter == 0){
+			SumCat[node->Category] -= node->Expense;
+			SumCat[0] -= node->Expense;
+			counter++;
+		}
+		if(node->left && node->right){
+			temp = node->left;
+			while(temp->right) 
+				temp = temp->right;
+		
+			node->Category = temp->Category;
+			node->Expense = temp->Expense;
+			node->Id = temp->Id;
+
+			node->left = DeleteNode(node->left, node->Id, counter); 
+		}
+		else{
+			if(!node->left && !node->right){
+				node = NULL;
+				free(node);
+			}
+			else if(!node->left || !node->right){
+				if(node->left) temp = node->left;
+				else temp = node->right;
+				
+				*node = *temp; // Kalo pake * copynya isinya aja left rightnya kgak ???
+				free(temp);
+			}
+			printf("Data succesfully deleted");
+		}
+	}		
+	
+	if(!node)
+		return NULL;
+
+	node->height = UpdateHeight(node);
+	int BF = getBF(node);
+	
+	if(BF > 1){ //Lebih kiri
+		if(getBF(node->left) < 0) node->left = LeftRotate(node->left);
+		return RightRotate(node);
+	}
+	else if(BF < -1){ //Kelebihan Kanan
+		if(getBF(node->right) > 0) node->right = RightRotate(node->right);
+		return LeftRotate(node);
+	}	
+	
+	return node;	
+}
+
+Data *SearchNode(Data *node, int Id, int counter){
+	counter++;
+	if(!node){
+		printf("data is not found\n");
+		return NULL;
+	}
+	else if(Id < node->Id)
+		node->left = SearchNode(node->left, Id, counter);
+	else if(Id > node->Id)
+		node->right = SearchNode(node->right, Id, counter);
+	else{
+		printf("Data found after %d searches\n", counter);
+		printf("Category Name : %s\n", categ[node->Category]);
+		printf("Expense : %d\n", node->Expense);
+	}
+	return node;
+}
+
+int main(){
+	root = Insert(root, expenseid, 200000, 1);
+	root = Insert(root, expenseid, 300000, 2);
+	root = Insert(root, expenseid, 400000, 3);
+	root = Insert(root, expenseid, 800000, 4);
+	root = Insert(root, expenseid, 100000, 5);
+	
+	for(;;){
+		printList();
+		int menu;	
+		printf("1. Input expense\n");
+		printf("2. Remove expense\n");
+		printf("3. Search expense\n");
+		printf("4. Exit\n");
+		do{
+			printf("Input your choice: ");
+			scanf("%d", &menu);
+		}while(menu < 1 || menu > 4);
+		
+		if (menu == 4) 
+			return 0;
+		else if(menu == 1)
+			Input();
+		else{
+			int search;
+			printf("input expense ID : ");
+			scanf("%d", &search);
+			if(menu == 2){
+				root = DeleteNode(root, search, 0);
+				if(search+1 == expenseid)
+					UpdateID();
+			}
+			else 
+				SearchNode(root, search, 0);
+
+			getchar();
+			getchar();
+		}
+		
+		system("cls");
+	}
+	
+}
